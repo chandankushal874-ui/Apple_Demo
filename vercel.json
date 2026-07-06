@@ -1,14 +1,16 @@
 ﻿{
-    "services": {
-        "frontend": {
+    "services": [
+        {
+            "name": "frontend",
             "root": "frontend",
             "framework": "vite"
         },
-        "backend": {
+        {
+            "name": "backend",
             "root": "backend",
             "entrypoint": "main.py"
         }
-    },
+    ],
     "rewrites": [
         {
             "source": "/api(/.*)?",
