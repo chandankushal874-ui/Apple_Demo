@@ -1,4 +1,4 @@
-﻿{
+{
     "builds": [
         {
             "src": "backend/main.py",
@@ -18,8 +18,20 @@
             "dest": "backend/main.py"
         },
         {
+            "src": "/webhook",
+            "dest": "backend/main.py"
+        },
+        {
+            "src": "/demo/(.*)",
+            "dest": "frontend/$1"
+        },
+        {
+            "src": "/demo",
+            "dest": "frontend/index.html"
+        },
+        {
             "src": "/(.*)",
-            "dest": "frontend/"
+            "dest": "frontend/$1"
         }
     ]
 }

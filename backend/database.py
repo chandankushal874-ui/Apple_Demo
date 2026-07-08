@@ -2,7 +2,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./apple_store.db"
+import os
+
+if os.environ.get("VERCEL"):
+    SQLALCHEMY_DATABASE_URL = "sqlite:////tmp/apple_store.db"
+else:
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./apple_store.db"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,

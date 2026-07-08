@@ -1,9 +1,12 @@
 """FastAPI backend for the Apple demo store."""
 import os
+import hmac
+import hashlib
+import json
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -161,6 +164,51 @@ def analytics(db: Session = Depends(get_db)):
         "contract_value": round(contract_value, 2),
         "by_category": {cat: int(qty) for cat, qty in by_cat},
     }
+
+# ---------- Ollabear Webhook ----------
+WEBHOOK_SECRET = os.getenv("OLLABEAR_WEBHOOK_SECRET", "")
+
+
+@app.post("/webhook")
+async def ollabear_webhook(request: Request):
+    """
+    Receives Ollabear webhook events (message.created, conversation.closed, etc.).
+    Verifies the HMAC-SHA256 signature before processing.
+    """
+    raw_body = await request.body()
+    signature = request.headers.get("x-webhook-signature", "")
+    event_type = request.headers.get("x-webhook-event", "unknown")
+
+    # Verify signature if secret is configured
+    if WEBHOOK_SECRET:
+        expected = hmac.new(
+            WEBHOOK_SECRET.encode(),
+            raw_body,
+            hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(expected, signature):
+            print(f"[webhook] ❌ Signature mismatch for event: {event_type}")
+            raise HTTPException(401, "Invalid signature")
+
+    # Parse and log the event
+    try:
+        payload = json.loads(raw_body)
+    except json.JSONDecodeError:
+        payload = {}
+
+    print(f"[webhook] ✅ Received event: {event_type}")
+    print(f"[webhook]    Payload: {json.dumps(payload, indent=2)}")
+
+    # Handle specific events
+    if event_type == "message.created":
+        message = payload.get("message", {})
+        print(f"[webhook]    💬 New message from {message.get('role', '?')}: {message.get('content', '')}")
+    elif event_type == "conversation.created":
+        print(f"[webhook]    🆕 New conversation: {payload.get('conversation_id', '?')}")
+    elif event_type == "conversation.closed":
+        print(f"[webhook]    🔒 Conversation closed: {payload.get('conversation_id', '?')}")
+
+    return {"status": "ok"}
 
 
 # ---------- Serve frontend build at /demo ----------
